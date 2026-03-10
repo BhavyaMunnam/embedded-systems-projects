@@ -1,0 +1,177 @@
+#include <LiquidCrystal.h>
+LiquidCrystal lcd(2, 3, 4, 5, 6, 7); // Initialize 16x2 LCD with respective pins
+int tx1 = 0;
+int rx1 = 1; // Serial1 (for fingerprint sensor)
+int tx2 = 8;
+int rx2 = 9; // Serial2 (for RFID module)
+char res[130]; // Response buffer for fingerprint sensor
+// Fingerprint sensor commands
+Unsigned char enroll[12] =
+{0xEF,0X01,0XFF,0XFF,0XFF,0XFF,0X01,0X00,0X03,0X01,0X00,0X05};
+unsigned char generate_ch[13] =
+{0xEF,0X01,0XFF,0XFF,0XFF,0XFF,0X01,0X00,0X04,0x02,0X01,0X00,0X08};
+unsigned char generate_ch1[13] =
+{0xEF,0X01,0XFF,0XFF,0XFF,0XFF,0X01,0X00,0X04,0x02,0X02,0X00,0X09};
+unsigned char un_cmd[12] = {0xef,0x01,0xff,0xff,0xff,0xff,
+0x01,0x00,0x03,0x05,0x00,0x09 };
+unsigned char store[12] =
+{0xEF,0X01,0XFF,0XFF,0XFF,0XFF,0X01,0X00,0X06,0X06,0X02,0x00};
+unsigned char identify[17] =
+{0xef,0x01,0xff,0xff,0xff,0xff,0x01,0x00,0x08,0x1b,0x01,0x00,0x00,0x01,0x01,0x00,0x27};
+int enrol_sw = 10; // Enrollment button
+int ign_sw = 11; // Ignition button
+int buzzer = 22; // Buzzer for alerts
+int relay = 12; // Relay to control ignition
+int idk = 0, eid = 0; // Fingerprint ID tracking
+int err = 0; // Error flag
+String rfid_string; // Stores RFID tag data
+boolean rfid_flag = false;
+int sta = 0;
+int rfid_status = 0;
+int ignv = 0; // Ignition status
+// Function to trigger buzzer
+void beep() {
+digitalWrite(buzzer, HIGH);
+delay(3000);
+digitalWrite(buzzer, LOW);
+}
+// Function to check for 'OK' response from fingerprint sensor
+void okcheck() {
+unsigned char rcr;
+do {
+rcr = Serial1.read();
+} while (rcr != 'K');
+}
+// Function to clear Serial1 buffer
+void serialFlush() {
+while (Serial1.available() > 0) {
+char t = Serial1.read();
+}
+}
+// Function to enroll a new fingerprint
+int fpenroll(char id);
+// Function to search for a fingerprint match
+int fpsearch();
+void setup() {
+pinMode(enrol_sw, INPUT_PULLUP);
+pinMode(ign_sw, INPUT_PULLUP);
+pinMode(buzzer, OUTPUT);
+pinMode(relay, OUTPUT);
+digitalWrite(buzzer, LOW);
+digitalWrite(relay, LOW);
+Serial1.setRX(rx1);
+Serial1.setTX(tx1);
+Serial1.begin(57600); // Fingerprint sensor baud rate
+Serial2.setRX(rx2);
+Serial2.setTX(tx2);
+Serial2.begin(9600); // RFID module baud rate
+// Display startup message on LCD
+lcd.begin(16, 2);
+lcd.clear();
+lcd.print(" Car Ignition ");
+lcd.setCursor(0, 1);
+lcd.print(" Control With");
+delay(2500);
+lcd.clear();
+lcd.print("Fingerprint-RFID");
+lcd.setCursor(0, 1);
+lcd.print("Raspberry Pipico");
+delay(2500);
+}
+void loop() {
+if (digitalRead(enrol_sw) == LOW) { // Check if enrollment button is pressed
+lcd.clear();
+lcd.setCursor(0, 0);
+lcd.print("ENROLLING..");
+if (fpenroll(eid) ==-1) {
+err = 0;
+lcd.clear();
+lcd.setCursor(0, 0);
+lcd.print("ENROLL FAILED");
+} else {
+lcd.clear();
+lcd.setCursor(0, 0);
+lcd.print("ENROLLED: ");
+lcd.print((int)eid);
+eid++;
+}
+delay(2000);
+lcd.clear();
+}
+if (rfid_status == 1) { // If RFID scan is triggered
+rfid_status = 0;
+lcd.clear();
+lcd.setCursor(0, 0);
+lcd.print("Identifying..");
+idk = fpsearch();
+if (err == 1) {
+err = 0;
+lcd.clear();
+lcd.print("Not Found...");
+beep();
+}
+if (idk >= 0 && idk <= 9) {
+lcd.clear();
+lcd.print("Correct Match");
+lcd.setCursor(0, 1);
+lcd.print("Accessed");
+digitalWrite(relay, HIGH);
+delay(3000);
+}
+lcd.clear();
+}
+if (digitalRead(ign_sw) == LOW) { // If ignition key is turned ON
+lcd.clear();
+lcd.print("Ign Key ON");
+lcd.setCursor(0, 1);
+lcd.print("Swipe Lic Card");
+ignv = 1;
+delay(1000);
+}
+if (digitalRead(ign_sw) == HIGH) { // If ignition key is turned OFF
+lcd.clear();
+lcd.print("Ign Key OFF");
+ignv = 0;
+digitalWrite(relay, LOW);
+delay(1000);
+}
+while (Serial2.available() > 0) { // Read RFID data
+char chrt = (char)Serial2.read();
+if ((chrt >= '0' && chrt <= '9') || (chrt >= 'A' && chrt <= 'Z')) {
+rfid_string += chrt;
+}
+}
+// function to break
+sta++;
+if (sta >= 12) {
+sta = 0;
+rfid_flag = true;
+}
+}
+}
+if (rfid_flag) { // Validate RFID card
+if (rfid_string == "5500C8819985" && ignv == 1) {
+lcd.clear();
+lcd.print("Lic:178934");
+lcd.setCursor(0, 1);
+lcd.print("Keep Finger");
+delay(2500);
+rfid_status = 1;
+} else if (rfid_string == "5500199E6EBC") {
+lcd.clear();
+lcd.print("Invalid License");
+beep();
+delay(2000);
+}
+rfid_string = "";
+rfid_flag = false;
+lcd.clear();
+}
+}
+// Function to convert and send integer value via Serial1
+void converts(unsigned int value) {
+Serial1.print(value);
+}
+// Function to convert and display integer value on LCD
+void convertl(unsigned int value) {
+lcd.print(value);
