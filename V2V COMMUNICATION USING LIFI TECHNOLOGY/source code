@@ -1,0 +1,242 @@
+Li-Fi LCD Voice Solar:  
+#include<LiquidCrystal.h> LiquidCrystal 
+lcd(2,3,4,5,6,7);  
+#define solar A0  
+#define v 10  
+#define f 12  
+#define g 11  
+#define b 9 
+#define d 8 
+void setup() 
+{  
+// put your setup code here, to run 
+once: Serial.begin(9600); 
+lcd.begin(16,2);  
+pinMode(v,OUTPUT); 
+pinMode(f,OUTPUT); 
+pinMode(g,OUTPUT); 
+pinMode(b,OUTPUT); 
+pinMode(d,OUTPUT); 
+digitalWrite(v,HIGH); 
+digitalWrite(f,HIGH); 
+digitalWrite(g,HIGH); 
+digitalWrite(b,HIGH); 
+digitalWrite(d,HIGH);  
+lcd.print("Welcome To 
+lcd.setCursor(0,1);  
+");  
+lcd.print("The Project  
+delay(1000);  
+lcd.clear();  
+}  
+void loop() {  
+");  
+// put your main code here, to run repeatedly:  
+int s = analogRead(solar)/5;  
+int 
+l 
+= 
+//Serial.println("s:  
+analogRead(A1); 
+"+String(s)+"");
+Serial.println("l: 
+"+String(l)+""); 
+if(l>450 && l<500)//(s>16 && s<19)  
+{ lcd.setCursor(0,0); 
+lcd.print("Accident   
+"); 
+lcd.setCursor(0,1);  
+lcd.print("Alert  
+digitalWrite(v,LOW); 
+delay(1500); 
+digitalWrite(v,HIGH);  
+"); 
+} else if(l>330 && l<335)//(s>66 && 
+s<69)  
+{ 
+lcd.setCursor(0,0);  
+lcd.print("Fire  
+lcd.setCursor(0,1); 
+lcd.print("Alert   
+digitalWrite(f,LOW); 
+delay(1500); 
+digitalWrite(f,HIGH);  
+");  
+"); 
+} else if(l>350 && l<370)//(s>22 && 
+s<25)  
+{ 
+lcd.setCursor(0,0);  
+lcd.print("Gas  
+lcd.setCursor(0,1); 
+lcd.print("Alert   
+digitalWrite(g,LOW); 
+delay(1500); 
+digitalWrite(g,HIGH);  
+");  
+"); 
+} else if(l>390 && l<410)//(s>32 && 
+s<36)  
+{ 
+lcd.setCursor(0,0); 
+lcd.print("Emerge
+ncy   
+"); 
+lcd.setCursor(0,1);
+lcd.print("Alert  
+digitalWrite(b,LOW); 
+delay(1500); 
+digitalWrite(b,HIGH);  
+"); 
+} else if(l>260 && l<320)//(s>75 && 
+s<81)  
+{ lcd.setCursor(0,0); 
+lcd.print("Obstacle   
+lcd.setCursor(0,1);  
+lcd.print("Alert  
+digitalWrite(d,LOW); 
+delay(1500); 
+digitalWrite(d,HIGH);  
+} 
+else  
+{ 
+digitalWrite(v,HIGH); 
+digitalWrite(f,HIGH); 
+digitalWrite(g,HIGH); 
+digitalWrite(b,HIGH); 
+digitalWrite(d,HIGH);  
+} 
+delay(500);  
+}  
+"); 
+"); 
+
+Li-Fi LCD Fire Gas vibration button:  
+#include<LiquidCrystal.h> 
+LiquidCrystal 
+lcd(A1,3,4,5,6,7); 
+const byte hallSensor = 2; const byte 
+interruptPin = 0; volatile unsigned 
+long revCount = 0; unsigned long 
+prevTime = 0; #define fire A0 
+#define gas A2  
+#define light 11 
+#define button 10 // 
+defines pins numbers 
+const int trigPin = 8; 
+const int echoPin = 9; 
+// 
+defines variables 
+long 
+duration; 
+int 
+distance; int fv; int av; 
+int bv; void setup() {  
+// put your setup code here, to run once: Serial.begin(9600); 
+lcd.begin(16, 
+2); 
+pinMode(button, 
+INPUT); 
+pinMode(hallSensor, INPUT); pinMode(light,OUTPUT); 
+pinMode(trigPin, OUTPUT); // Sets the trigPin as an Output 
+pinMode(echoPin, INPUT); // Sets the echoPin as an Input 
+attachInterrupt(interruptPin, 
+countRevs, 
+RISING); 
+lcd.print("Welcome To "); lcd.setCursor(0,1); lcd.print("The 
+Project "); delay(1000); lcd.clear();  
+}  
+void loop() {  
+// put your main code here, to run repeatedly:  
+int f = analogRead(fire);  
+int g = analogRead(gas); int 
+b = digitalRead(button);  
+/*Serial.print("fire:");  
+Serial.print(f);  
+Serial.print(" gas:");  
+Serial.print(g);  
+Serial.print(" button:");  
+Serial.print(b);*/  
+// 
+Clears 
+the 
+trigPin 
+digitalWrite(trigPin, LOW); 
+delayMicroseconds(2); 
+// Sets the trigPin on HIGH state for 10 micro seconds 
+digitalWrite(trigPin, HIGH); delayMicroseconds(10); 
+digitalWrite(trigPin, LOW);  
+// Reads the echoPin, returns the sound wave travel time in microseconds 
+duration = pulseIn(echoPin, HIGH); // Calculating the distance distance 
+= duration * 0.034 / 2; // Prints the distance on the Serial Monitor  
+//Serial.print(" D:");  
+//Serial.println(distance); 
+unsigned 
+long currentTime = millis(); if 
+(currentTime - prevTime >= 1000)  
+{ 
+detachInterrupt(interruptPin)
+;  
+//unsigned long rpm = (revCount * 60) / 2; unsigned 
+long rpm = revCount;  
+//lcd.setCursor(0, 0);  
+//lcd.print(rpm); 
+//lcd.print("  "); 
+if(rpm>100)  
+{  
+av=1;  
+Serial.println("vibration 
+alert"); analogWrite(light,50); 
+delay(500); } else  
+{ 
+av=0;  
+}  
+}  
+prevTime = currentTime; revCount = 0; 
+attachInterrupt(interruptPin, countRevs, RISING);  
+////////////////  
+if(f<400)  
+{  
+Serial.println("fire alert"); 
+fv=1; 
+analogWrite(light,200);  
+} 
+if(g>150)  
+{  
+else 
+Serial.println("gas 
+analogWrite(light,150);  
+} 
+if(b==0)  
+{ 
+bv=1;  
+else 
+Serial.println("emergency 
+analogWrite(light,100);  
+} else 
+if(distance<20) {  
+Serial.println("obstacle 
+analogWrite(light,250);  
+} 
+else  
+{ 
+fv=0; 
+bv=0;  
+Serial.println("normal"); 
+analogWrite(light,0);  
+} 
+lcd.setCursor(0,0); 
+Dis:"+String(distance)+" 
+alert"); 
+alert"); 
+alert"); 
+lcd.print("Gas:"+String(g)+" 
+"); 
+lcd.setCursor(0, 
+1); 
+lcd.print("Fi:"+String(fv)+" Ac:"+String(av)+" Em:"+String(bv)+" "); 
+delay(500);  
+}  
+void countRevs() {  
+revCount++; 
+}
